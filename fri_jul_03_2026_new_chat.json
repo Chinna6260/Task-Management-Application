@@ -1,0 +1,138 @@
+{
+  "currentUserLogin": "Chinna6260",
+  "threadUrl": "https://github.com/copilot/c/f88e9781-6681-4214-a273-aa5d333d02c5",
+  "threadName": "New chat",
+  "messages": [
+    {
+      "id": "root",
+      "role": "user",
+      "createdAt": "",
+      "threadID": "",
+      "references": null
+    },
+    {
+      "id": "304a7555-6b57-468d-be32-a0e5e0eb0b12",
+      "parentMessageID": "root",
+      "role": "user",
+      "content": "Task Management Application\nDevelop a task management web application for creating, updating, and tracking tasks.\n\nKey Features:\nUser authentication & authorization\nCRUD operations for tasks\nReal-time updates (optional: using WebSockets)\nResponsive design for web and mobile screens\nExpected Outcome:\nLearn full-stack application structure, API integration, and dynamic data handling.",
+      "createdAt": "2026-07-03T05:15:38.375Z",
+      "threadID": "f88e9781-6681-4214-a273-aa5d333d02c5",
+      "references": [],
+      "skillExecutions": []
+    }
+  ],
+  "files": {
+    "backend/package.json": [
+      {
+        "version": 1,
+        "messageId": "831ec4c9-bc3f-4620-80ad-07d38f15485d",
+        "id": "file:backend/package.json#2.15",
+        "language": "js",
+        "name": "backend/package.json",
+        "value": "{\n  \"name\": \"taskapp-backend\",\n  \"version\": \"1.0.0\",\n  \"main\": \"index.js\",\n  \"scripts\": {\n    \"start\": \"node index.js\",\n    \"dev\": \"nodemon index.js\"\n  },\n  \"dependencies\": {\n    \"bcryptjs\": \"^2.4.3\",\n    \"cors\": \"^2.8.5\",\n    \"dotenv\": \"^16.0.0\",\n    \"express\": \"^4.18.2\",\n    \"jsonwebtoken\": \"^9.0.0\",\n    \"socket.io\": \"^4.7.0\",\n    \"sqlite3\": \"^5.1.6\"\n  },\n  \"devDependencies\": {\n    \"nodemon\": \"^2.0.22\"\n  }\n}",
+        "type": "file",
+        "timestamp": "2026-07-03T05:15:38.375Z",
+        "isStreaming": false,
+        "isUserEdited": false
+      }
+    ],
+    "backend/.env": [
+      {
+        "version": 1,
+        "messageId": "831ec4c9-bc3f-4620-80ad-07d38f15485d",
+        "id": "file:backend/.env#2.39",
+        "language": "js",
+        "name": "backend/.env",
+        "value": "# copy and edit\nJWT_SECRET=replace_with_a_long_random_secret\nPORT=4000",
+        "type": "file",
+        "timestamp": "2026-07-03T05:15:38.375Z",
+        "isStreaming": false,
+        "isUserEdited": false
+      }
+    ],
+    "backend/db.js": [
+      {
+        "version": 1,
+        "messageId": "831ec4c9-bc3f-4620-80ad-07d38f15485d",
+        "id": "file:backend/db.js#2.45",
+        "language": "js",
+        "name": "backend/db.js",
+        "value": "const sqlite3 = require('sqlite3').verbose();\nconst path = require('path');\nconst DB_PATH = path.join(__dirname, 'data.sqlite');\n\nconst db = new sqlite3.Database(DB_PATH);\n\nfunction init() {\n  db.serialize(() => {\n    db.run(`CREATE TABLE IF NOT EXISTS users (\n      id INTEGER PRIMARY KEY AUTOINCREMENT,\n      username TEXT UNIQUE,\n      password_hash TEXT,\n      created_at DATETIME DEFAULT CURRENT_TIMESTAMP\n    )`);\n    db.run(`CREATE TABLE IF NOT EXISTS tasks (\n      id INTEGER PRIMARY KEY AUTOINCREMENT,\n      title TEXT NOT NULL,\n      description TEXT,\n      status TEXT DEFAULT 'todo',\n      due_date TEXT,\n      user_id INTEGER,\n      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,\n      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,\n      FOREIGN KEY(user_id) REFERENCES users(id)\n    )`);\n  });\n}\n\nmodule.exports = { db, init };",
+        "type": "file",
+        "timestamp": "2026-07-03T05:15:38.375Z",
+        "isStreaming": false,
+        "isUserEdited": false
+      }
+    ],
+    "backend/middleware/auth.js": [
+      {
+        "version": 1,
+        "messageId": "831ec4c9-bc3f-4620-80ad-07d38f15485d",
+        "id": "file:backend/middleware/auth.js#2.77",
+        "language": "js",
+        "name": "backend/middleware/auth.js",
+        "value": "const jwt = require('jsonwebtoken');\nconst { db } = require('../db');\nconst SECRET = process.env.JWT_SECRET;\n\nfunction authMiddleware(req, res, next) {\n  const auth = req.headers.authorization;\n  if (!auth) return res.status(401).json({ error: 'Missing Authorization header' });\n  const token = auth.split(' ')[1];\n  try {\n    const payload = jwt.verify(token, SECRET);\n    // attach user to request\n    req.user = { id: payload.id, username: payload.username };\n    next();\n  } catch (err) {\n    return res.status(401).json({ error: 'Invalid token' });\n  }\n}\n\nmodule.exports = authMiddleware;",
+        "type": "file",
+        "timestamp": "2026-07-03T05:15:38.375Z",
+        "isStreaming": false,
+        "isUserEdited": false
+      }
+    ],
+    "backend/routes/auth.js": [
+      {
+        "version": 1,
+        "messageId": "831ec4c9-bc3f-4620-80ad-07d38f15485d",
+        "id": "file:backend/routes/auth.js#2.99",
+        "language": "js",
+        "name": "backend/routes/auth.js",
+        "value": "const express = require('express');\nconst router = express.Router();\nconst bcrypt = require('bcryptjs');\nconst jwt = require('jsonwebtoken');\nconst { db } = require('../db');\n\nconst SECRET = process.env.JWT_SECRET;\n\nrouter.post('/register', async (req, res) => {\n  const { username, password } = req.body;\n  if (!username || !password) return res.status(400).json({ error: 'username/password required' });\n  const hash = await bcrypt.hash(password, 10);\n  const stmt = db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)');\n  stmt.run(username, hash, function (err) {\n    if (err) {\n      if (err.message.includes('UNIQUE')) return res.status(409).json({ error: 'username taken' });\n      return res.status(500).json({ error: 'db error' });\n    }\n    const token = jwt.sign({ id: this.lastID, username }, SECRET, { expiresIn: '7d' });\n    res.json({ token, user: { id: this.lastID, username } });\n  });\n});\n\nrouter.post('/login', (req, res) => {\n  const { username, password } = req.body;\n  db.get('SELECT id, username, password_hash FROM users WHERE username = ?', [username], async (err, row) => {\n    if (err) return res.status(500).json({ error: 'db error' });\n    if (!row) return res.status(401).json({ error: 'invalid credentials' });\n    const ok = await bcrypt.compare(password, row.password_hash);\n    if (!ok) return res.status(401).json({ error: 'invalid credentials' });\n    const token = jwt.sign({ id: row.id, username: row.username }, SECRET, { expiresIn: '7d' });\n    res.json({ token, user: { id: row.id, username: row.username } });\n  });\n});\n\nmodule.exports = router;",
+        "type": "file",
+        "timestamp": "2026-07-03T05:15:38.375Z",
+        "isStreaming": false,
+        "isUserEdited": false
+      }
+    ],
+    "backend/routes/tasks.js": [
+      {
+        "version": 1,
+        "messageId": "831ec4c9-bc3f-4620-80ad-07d38f15485d",
+        "id": "file:backend/routes/tasks.js#2.138",
+        "language": "js",
+        "name": "backend/routes/tasks.js",
+        "value": "const express = require('express');\nconst router = express.Router();\nconst auth = require('../middleware/auth');\nconst { db } = require('../db');\n\n// helper to emit events via req.io (attached in index.js)\nfunction emit(req, event, payload) {\n  if (req.io) req.io.emit(event, payload);\n}\n\n// list tasks for current user\nrouter.get('/', auth, (req, res) => {\n  const userId = req.user.id;\n  db.all('SELECT * FROM tasks WHERE user_id = ? ORDER BY created_at DESC', [userId], (err, rows) => {\n    if (err) return res.status(500).json({ error: 'db error' });\n    res.json(rows);\n  });\n});\n\n// create\nrouter.post('/', auth, (req, res) => {\n  const { title, description, status, due_date } = req.body;\n  const user_id = req.user.id;\n  const stmt = db.prepare('INSERT INTO tasks (title, description, status, due_date, user_id) VALUES (?, ?, ?, ?, ?)');\n  stmt.run(title, description, status || 'todo', due_date || null, user_id, function (err) {\n    if (err) return res.status(500).json({ error: 'db error' });\n    db.get('SELECT * FROM tasks WHERE id = ?', [this.lastID], (err2, row) => {\n      emit(req, 'task_created', row);\n      res.status(201).json(row);\n    });\n  });\n});\n\n// get single\nrouter.get('/:id', auth, (req, res) => {\n  const id = req.params.id;\n  const user_id = req.user.id;\n  db.get('SELECT * FROM tasks WHERE id = ? AND user_id = ?', [id, user_id], (err, row) => {\n    if (err) return res.status(500).json({ error: 'db error' });\n    if (!row) return res.status(404).json({ error: 'not found' });\n    res.json(row);\n  });\n});\n\n// update\nrouter.put('/:id', auth, (req, res) => {\n  const id = req.params.id;\n  const user_id = req.user.id;\n  const { title, description, status, due_date } = req.body;\n  const stmt = db.prepare(\n    `UPDATE tasks SET title = ?, description = ?, status = ?, due_date = ?, updated_at = CURRENT_TIMESTAMP\n     WHERE id = ? AND user_id = ?`\n  );\n  stmt.run(title, description, status, due_date, id, user_id, function (err) {\n    if (err) return res.status(500).json({ error: 'db error' });\n    if (this.changes === 0) return res.status(404).json({ error: 'not found' });\n    db.get('SELECT * FROM tasks WHERE id = ?', [id], (err2, row) => {\n      emit(req, 'task_updated', row);\n      res.json(row);\n    });\n  });\n});\n\n// delete\nrouter.delete('/:id', auth, (req, res) => {\n  const id = req.params.id;\n  const user_id = req.user.id;\n  db.get('SELECT * FROM tasks WHERE id = ? AND user_id = ?', [id, user_id], (err, row) => {\n    if (err) return res.status(500).json({ error: 'db error' });\n    if (!row) return res.status(404).json({ error: 'not found' });\n    db.run('DELETE FROM tasks WHERE id = ? AND user_id = ?', [id, user_id], function (err2) {\n      if (err2) return res.status(500).json({ error: 'db error' });\n      emit(req, 'task_deleted', { id: Number(id) });\n      res.json({ success: true });\n    });\n  });\n});\n\nmodule.exports = router;",
+        "type": "file",
+        "timestamp": "2026-07-03T05:15:38.375Z",
+        "isStreaming": false,
+        "isUserEdited": false
+      }
+    ],
+    "backend/index.js": [
+      {
+        "version": 1,
+        "messageId": "831ec4c9-bc3f-4620-80ad-07d38f15485d",
+        "id": "file:backend/index.js#2.220",
+        "language": "js",
+        "name": "backend/index.js",
+        "value": "require('dotenv').config();\nconst express = require('express');\nconst http = require('http');\nconst cors = require('cors');\nconst { init, db } = require('./db');\n\nconst authRoutes = require('./routes/auth');\nconst tasksRoutes = require('./routes/tasks');\n\ninit();\n\nconst app = express();\nconst server = http.createServer(app);\n\nconst { Server } = require('socket.io');\nconst io = new Server(server, {\n  cors: { origin: '*' }\n});\nio.on('connection', (socket) => {\n  console.log('socket connected', socket.id);\n});\n\n// attach io to req so routes can emit\napp.use((req, res, next) => { req.io = io; next(); });\n\napp.use(cors());\napp.use(express.json());\n\napp.use('/api/auth', authRoutes);\napp.use('/api/tasks', tasksRoutes);\n\napp.get('/', (req, res) => res.json({ ok: true }));\n\nconst PORT = process.env.PORT || 4000;\nserver.listen(PORT, () => console.log(`Server listening on ${PORT}`));",
+        "type": "file",
+        "timestamp": "2026-07-03T05:15:38.375Z",
+        "isStreaming": false,
+        "isUserEdited": false
+      }
+    ],
+    "frontend/package.json": [
+      {
+        "version": 1,
+        "messageId": "831ec4c9-bc3f-4620-80ad-07d38f15485d",
+        "id": "file:frontend/package.json#2.259",
+        "language": "json",
+        "name": "frontend/package.json",
+        "value": "{\n  \"name\": \"taskapp-frontend\",\n  \"version\": \"1.0.0\",\n  \"private\": true,\n  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"vite build\",\n    \"preview\": \"vite preview\"\n  },\n  \"dependencies\": {\n    \"react\": \"^18.2.0\",\n    \"react-dom\": \"^18.2.0\",\n    \"socket.io-client\": \"^4.7.0\"\n  },\n  \"devDependencies\": {\n    \"vite\": \"^5.1.0\"\n  }\n}",
+        "type": "file",
+        "timestamp": "2026-07-03T05:15:38.375Z",
+        "isStreaming": false,
+        "isUserEdited": false
+      }
+    ]
+  }
+}
